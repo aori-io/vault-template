@@ -37,10 +37,12 @@ contract OrderVault is ERC4626 {
         IOrderProtocol.MatchingDetails memory matching,
         IOrderProtocol.Signature memory serverSignature
     ) external {
+        require(owner == msg.sender, "Only owner can call this function");
         IOrderProtocol(orderProtocol).settleOrders(matching, serverSignature);
     }
 
     function makeExternalCall(address to, uint256 value, bytes memory data) external returns (bool, bytes memory) {
+        require(owner == msg.sender, "Only owner can call this function");
         (bool success, bytes memory returnedData) = (to).call{value: value}(data);
         return (success, returnedData);
     }

@@ -1,6 +1,6 @@
 # Aori Vaults Template
 
-This boilerplate is a simple ERC4626 vault template that can be used to interact with Aori.
+This boilerplate is a simple multi-token vault template that can be used to interact with Aori.
 
 ```solidity
 contract OrderVault is IERC1271 {

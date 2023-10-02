@@ -3,7 +3,10 @@
 This boilerplate is a simple ERC4626 vault template that can be used to interact with Aori.
 
 ```solidity
-contract OrderVault is ERC4626 {
+contract OrderVault is IERC1271 {
+
+    // bytes4(keccak256("isValidSignature(bytes32,bytes)")
+    bytes4 constant internal ERC1271_MAGICVALUE = 0x1626ba7e;
     
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -12,46 +15,60 @@ contract OrderVault is ERC4626 {
     address public owner;
     address public orderProtocol;
 
+    mapping (address => bool) public managers;
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        address _orderProtocol,
-        IERC20 asset,
-        string memory name,
-        string memory symbol
-    ) ERC4626(asset) ERC20(name, symbol) {
+        address _orderProtocol
+    ) {
         owner = msg.sender;
+        managers[owner] = true;
         orderProtocol = _orderProtocol;
     }
 
     /*//////////////////////////////////////////////////////////////
-                           EXTERNAL FUNCTIONS
+                                 CALLS
     //////////////////////////////////////////////////////////////*/
 
     function makeTrade(
         IOrderProtocol.MatchingDetails memory matching,
         IOrderProtocol.Signature memory serverSignature
     ) external {
-        require(owner == msg.sender, "Only owner can call this function");
-        IOrderProtocol(orderProtocol).settleOrders(matching, serverSignature);
+        // ...
     }
 
     function makeExternalCall(address to, uint256 value, bytes memory data) external returns (bool, bytes memory) {
-        require(owner == msg.sender, "Only owner can call this function");
-        (bool success, bytes memory returnedData) = (to).call{value: value}(data);
-        return (success, returnedData);
+        // ...
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                EIP-1271
+    //////////////////////////////////////////////////////////////*/
+
+    function isValidSignature(bytes32 _hash, bytes memory _signature) public view returns (bytes4) {
+        // ...
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                               MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
+
+    function setManager(address _manager, bool _isManager) external {
+        // ...
     }
 
     /*//////////////////////////////////////////////////////////////
                                   MISC
     //////////////////////////////////////////////////////////////*/
 
-    fallback () external {}
+    receive () external payable {}
+    fallback () external payable {}
 }
 ```
 
-The owner of a vault can make and take limit orders for the vault off-chain, settling them with the vault's assets on-chain through the use of `makeTrade`.
+Managers of the vault can make and take limit orders for the vault off-chain, settling them with the vault's assets on-chain through the use of `makeTrade`.
 
-External calls can also be made e.g `makeExternalCall`.
+External calls can also be made via `makeExternalCall` e.g `ERC20` approvals.

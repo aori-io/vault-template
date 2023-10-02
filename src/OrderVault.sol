@@ -91,5 +91,4 @@ contract OrderVault is IERC1271 {
 
     receive () external payable {}
     fallback () external payable {}
-    
 }

@@ -14,5 +14,5 @@ jobs:
         with:
           version: nightly
 
-      - name: Run Foundry Build
-        run: forge build
+      - name: Run Foundry tests
+        run: make tests

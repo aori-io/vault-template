@@ -1,5 +1,7 @@
 # Aori Vaults Template
 
+![.](assets/aori-vault-template.svg)
+
 This boilerplate is a simple multi-token vault template that can be used to interact with Aori.
 
 ```solidity

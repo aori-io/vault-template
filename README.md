@@ -74,3 +74,11 @@ contract OrderVault is IERC1271 {
 Managers of the vault can make and take limit orders for the vault off-chain, settling them with the vault's assets on-chain through the use of `makeTrade`.
 
 External calls can also be made via `makeExternalCall` e.g `ERC20` approvals.
+
+To run the tests, run:
+```
+forge test --via-ir --fork-url $YOUR_RPC_URL
+
+```
+
+

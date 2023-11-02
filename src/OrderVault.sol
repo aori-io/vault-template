@@ -68,8 +68,19 @@ contract OrderVault is IERC1271 {
             v := byte(0, mload(add(_signature, 96)))
         }
 
+        address ethSignSigner = ecrecover(_hash, v, r, s);
+
+        // EIP1271 - dangerous if the eip151-eip1271 pairing can be found
+        address eip1271Signer = ecrecover(
+            keccak256(
+                abi.encodePacked(
+                    "\x19Ethereum Signed Message:\n32",
+                    _hash
+                )
+            ), v, r, s);
+
         // check if the signature comes from a valid manager
-        if (managers[ecrecover(_hash, v, r, s)]) {
+        if (managers[ethSignSigner] || managers[eip1271Signer]) {
             return ERC1271_MAGICVALUE;
         }
 

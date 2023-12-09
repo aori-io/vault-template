@@ -13,3 +13,6 @@
 [submodule "lib/aori-contracts"]
 	path = lib/aori-contracts
 	url = https://github.com/aori-io/aori-contracts
+[submodule "lib/create3-factory"]
+	path = lib/create3-factory
+	url = https://github.com/aori-io/create3-factory

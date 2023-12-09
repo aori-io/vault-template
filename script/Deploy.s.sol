@@ -11,14 +11,15 @@ contract DeployScript is Script {
         address deployerAddress = vm.addr(deployerPrivateKey);
         address create3FactoryAddress = vm.envAddress("CREATE3FACTORY_ADDRESS");
         address aoriProtocolAddress = vm.envAddress("AORIPROTOCOL_ADDRESS");
+        address balancerAddress = vm.envAddress("BALANCER_ADDRESS");
 
         vm.startBroadcast(deployerPrivateKey);
 
         ICREATE3Factory(create3FactoryAddress).deploy(
-            keccak256(bytes("if youre reading this, trade on aori thx")),
+            keccak256(bytes("if youre reading this trade on aori thx")),
             abi.encodePacked(
                 type(AoriVault).creationCode,
-                abi.encode(deployerAddress, aoriProtocolAddress)
+                abi.encode(deployerAddress, aoriProtocolAddress, balancerAddress)
             )
         );
 

@@ -23,9 +23,10 @@ contract OrderVault is IERC1271 {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
+        address _owner,
         address _orderProtocol
     ) {
-        owner = msg.sender;
+        owner = _owner;
         managers[owner] = true;
         orderProtocol = _orderProtocol;
     }

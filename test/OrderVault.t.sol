@@ -70,7 +70,7 @@ contract OrderVaultTest is DSTest {
         orderProtocol = new OrderProtocol(SEAPORT_ADDRESS);
 
         vm.prank(MAKER_WALLET);
-        orderVault = new OrderVault(address(orderProtocol));
+        orderVault = new OrderVault(MAKER_WALLET, address(orderProtocol));
 
         vm.label(address(orderProtocol), "Order Protocol");
         vm.label(address(orderVault), "Order Vault");

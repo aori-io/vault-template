@@ -13,6 +13,6 @@
 [submodule "lib/seaport-types"]
 	path = lib/seaport-types
 	url = https://github.com/ProjectOpenSea/seaport-types
-[submodule "lib/order-contracts"]
-	path = lib/order-contracts
-	url = https://github.com/aori-io/order-contracts
+[submodule "lib/aori-contracts"]
+	path = lib/aori-contracts
+	url = https://github.com/aori-io/aori-contracts

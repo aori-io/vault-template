@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/OrderVault.sol";
+import "../src/AoriVault.sol";
 
 contract DeployScript is Script {
     function run() external {
@@ -10,9 +10,6 @@ contract DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
         // TODO: 
-
-        
-
 
         vm.stopBroadcast();
     }

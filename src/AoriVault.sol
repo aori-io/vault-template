@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IOrderProtocol } from "./IOrderProtocol.sol";
+import { IAoriProtocol } from "aori-contracts/src/IAoriProtocol.sol";
+import { AoriProtocol } from "aori-contracts/src/AoriProtocol.sol";
 import { IERC1271 } from "openzeppelin-contracts/contracts/interfaces/IERC1271.sol";
 
-contract OrderVault is IERC1271 {
+contract AoriVault is IERC1271 {
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal ERC1271_MAGICVALUE = 0x1626ba7e;
@@ -14,7 +15,7 @@ contract OrderVault is IERC1271 {
     //////////////////////////////////////////////////////////////*/
 
     address public owner;
-    address public orderProtocol;
+    address public aoriProtocol;
 
     mapping (address => bool) public managers;
 
@@ -24,11 +25,11 @@ contract OrderVault is IERC1271 {
 
     constructor(
         address _owner,
-        address _orderProtocol
+        address _aoriProtocol
     ) {
         owner = _owner;
         managers[owner] = true;
-        orderProtocol = _orderProtocol;
+        aoriProtocol = _aoriProtocol;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -36,11 +37,11 @@ contract OrderVault is IERC1271 {
     //////////////////////////////////////////////////////////////*/
 
     function makeTrade(
-        IOrderProtocol.MatchingDetails memory matching,
-        IOrderProtocol.Signature memory serverSignature
+        AoriProtocol.MatchingDetails memory matching,
+        AoriProtocol.Signature memory serverSignature
     ) external {
         require(managers[msg.sender], "Only a manager can call this function");
-        IOrderProtocol(orderProtocol).settleOrders(matching, serverSignature);
+        IAoriProtocol(aoriProtocol).settleOrders(matching, serverSignature);
     }
 
     function makeExternalCall(address to, uint256 value, bytes memory data) external returns (bool, bytes memory) {

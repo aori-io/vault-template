@@ -12,15 +12,15 @@ import { OrderType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { SimpleToken } from "./mocks/SimpleToken.sol";
 import { OrderHasher } from "./utils/OrderHasher.sol";
-import { OrderVault } from "../src/OrderVault.sol";
-import { IOrderProtocol } from "../src/IOrderProtocol.sol";
-import { OrderProtocol } from "order-contracts/src/OrderProtocol.sol";
+import { AoriVault } from "../src/AoriVault.sol";
+import { IAoriProtocol } from "aori-contracts/src/IAoriProtocol.sol";
+import { AoriProtocol } from "aori-contracts/src/AoriProtocol.sol";
 
-contract OrderVaultTest is DSTest {
+contract AoriVaultTest is DSTest {
     Vm internal vm = Vm(HEVM_ADDRESS);
     address constant SEAPORT_ADDRESS = 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC;
-    OrderProtocol internal orderProtocol;
-    OrderVault internal orderVault;
+    AoriProtocol internal aoriProtocol;
+    AoriVault internal aoriVault;
 
     bytes32 internal _OFFER_ITEM_TYPEHASH;
     bytes32 internal _CONSIDERATION_ITEM_TYPEHASH;
@@ -66,14 +66,13 @@ contract OrderVaultTest is DSTest {
     OrderHasher internal orderHasher;
 
     function setUp() public {
-        vm.prank(SERVER_WALLET);
-        orderProtocol = new OrderProtocol(SEAPORT_ADDRESS);
+        aoriProtocol = new AoriProtocol(SERVER_WALLET, SEAPORT_ADDRESS);
 
         vm.prank(MAKER_WALLET);
-        orderVault = new OrderVault(MAKER_WALLET, address(orderProtocol));
+        aoriVault = new AoriVault(MAKER_WALLET, address(aoriProtocol));
 
-        vm.label(address(orderProtocol), "Order Protocol");
-        vm.label(address(orderVault), "Order Vault");
+        vm.label(address(aoriProtocol), "Order Protocol");
+        vm.label(address(aoriVault), "Order Vault");
 
         vm.label(SERVER_WALLET, "Server Wallet");
         vm.label(FAKE_SERVER_WALLET, "Fake Server Wallet");
@@ -98,8 +97,8 @@ contract OrderVaultTest is DSTest {
                                     PARAMS
         //////////////////////////////////////////////////////////////*/
 
-        IOrderProtocol.MatchingDetails memory matching;
-        IOrderProtocol.Signature memory serverSignature;
+        AoriProtocol.MatchingDetails memory matching;
+        AoriProtocol.Signature memory serverSignature;
 
         /*//////////////////////////////////////////////////////////////
                                     EXECUTE
@@ -107,7 +106,7 @@ contract OrderVaultTest is DSTest {
 
         vm.startPrank(FAKE_SERVER_WALLET);
         vm.expectRevert("Only a manager can call this function");
-        orderVault.makeTrade(matching, serverSignature);
+        aoriVault.makeTrade(matching, serverSignature);
         vm.stopPrank();
     }
 
@@ -118,9 +117,9 @@ contract OrderVaultTest is DSTest {
         //////////////////////////////////////////////////////////////*/
 
         offerItems.push(_createBaseOfferItemERC20(address(tokenA), 1 ether));
-        considerationItems.push(_createBaseConsiderationItemERC20(address(tokenB), 1 ether, address(orderVault)));
+        considerationItems.push(_createBaseConsiderationItemERC20(address(tokenB), 1 ether, address(aoriVault)));
 
-        OrderParameters memory parameters = _createBaseOrderParameters(address(orderVault), address(orderProtocol));
+        OrderParameters memory parameters = _createBaseOrderParameters(address(aoriVault), address(aoriProtocol));
         OrderComponents memory makerOrderComponents = _getOrderComponents(parameters);
         
         bytes memory makerSignature = this._signOrder(
@@ -144,7 +143,7 @@ contract OrderVaultTest is DSTest {
         offerItems.push(_createBaseOfferItemERC20(address(tokenB), 1 ether));
         considerationItems.push(_createBaseConsiderationItemERC20(address(tokenA), 1 ether, TAKER_WALLET));
 
-        OrderParameters memory takerParameters = _createBaseOrderParameters(TAKER_WALLET, address(orderProtocol));
+        OrderParameters memory takerParameters = _createBaseOrderParameters(TAKER_WALLET, address(aoriProtocol));
         OrderComponents memory takerOrderComponents = _getOrderComponents(takerParameters);
         
         bytes memory takerSignature = this._signOrder(
@@ -212,15 +211,15 @@ contract OrderVaultTest is DSTest {
 
         // Have the manager approve transfer approval of tokenA by Seaport contract
         vm.startPrank(MAKER_WALLET);
-        orderVault.makeExternalCall({
+        aoriVault.makeExternalCall({
             to: address(tokenA),
             value: 0,
             data: abi.encodeWithSignature("approve(address,uint256)", SEAPORT_ADDRESS, 2 ** 256 - 1)
         });
         vm.stopPrank();
 
-        // Mint some tokens for the OrderVault
-        vm.prank(address(orderVault));
+        // Mint some tokens for the AoriVault
+        vm.prank(address(aoriVault));
         tokenA.mint(1 ether);
 
         vm.startPrank(TAKER_WALLET);
@@ -230,13 +229,13 @@ contract OrderVaultTest is DSTest {
 
         vm.startPrank(MAKER_WALLET);
         vm.expectRevert();
-        orderVault.makeTrade(IOrderProtocol.MatchingDetails({
+        aoriVault.makeTrade(AoriProtocol.MatchingDetails({
             makerOrders: advancedOrders,
             takerOrder: takerOrder,
             fulfillments: fulfillments,
             blockDeadline: block.number,
             chainId: block.chainid
-        }), IOrderProtocol.Signature({
+        }), AoriProtocol.Signature({
             v: serverV,
             r: serverR,
             s: serverS
@@ -251,9 +250,9 @@ contract OrderVaultTest is DSTest {
         //////////////////////////////////////////////////////////////*/
 
         offerItems.push(_createBaseOfferItemERC20(address(tokenA), 1 ether));
-        considerationItems.push(_createBaseConsiderationItemERC20(address(tokenB), 1 ether, address(orderVault)));
+        considerationItems.push(_createBaseConsiderationItemERC20(address(tokenB), 1 ether, address(aoriVault)));
 
-        OrderParameters memory parameters = _createBaseOrderParameters(address(orderVault), address(orderProtocol));
+        OrderParameters memory parameters = _createBaseOrderParameters(address(aoriVault), address(aoriProtocol));
         OrderComponents memory makerOrderComponents = _getOrderComponents(parameters);
         
         bytes memory makerSignature = this._signOrder(
@@ -277,7 +276,7 @@ contract OrderVaultTest is DSTest {
         offerItems.push(_createBaseOfferItemERC20(address(tokenB), 1 ether));
         considerationItems.push(_createBaseConsiderationItemERC20(address(tokenA), 1 ether, TAKER_WALLET));
 
-        OrderParameters memory takerParameters = _createBaseOrderParameters(TAKER_WALLET, address(orderProtocol));
+        OrderParameters memory takerParameters = _createBaseOrderParameters(TAKER_WALLET, address(aoriProtocol));
         OrderComponents memory takerOrderComponents = _getOrderComponents(takerParameters);
         
         bytes memory takerSignature = this._signOrder(
@@ -345,15 +344,15 @@ contract OrderVaultTest is DSTest {
 
         // Have the manager approve transfer approval of tokenA by Seaport contract
         vm.startPrank(MAKER_WALLET);
-        orderVault.makeExternalCall({
+        aoriVault.makeExternalCall({
             to: address(tokenA),
             value: 0,
             data: abi.encodeWithSignature("approve(address,uint256)", SEAPORT_ADDRESS, 2 ** 256 - 1)
         });
         vm.stopPrank();
 
-        // Mint some tokens for the OrderVault
-        vm.prank(address(orderVault));
+        // Mint some tokens for the AoriVault
+        vm.prank(address(aoriVault));
         tokenA.mint(1 ether);
 
         vm.startPrank(TAKER_WALLET);
@@ -362,13 +361,13 @@ contract OrderVaultTest is DSTest {
         vm.stopPrank();
 
         vm.startPrank(MAKER_WALLET);
-        orderVault.makeTrade(IOrderProtocol.MatchingDetails({
+        aoriVault.makeTrade(AoriProtocol.MatchingDetails({
             makerOrders: advancedOrders,
             takerOrder: takerOrder,
             fulfillments: fulfillments,
             blockDeadline: block.number,
             chainId: block.chainid
-        }), IOrderProtocol.Signature({
+        }), AoriProtocol.Signature({
             v: serverV,
             r: serverR,
             s: serverS
@@ -383,13 +382,13 @@ contract OrderVaultTest is DSTest {
     function test_failMakeExternalCallNotManager() public {
         vm.startPrank(FAKE_SERVER_WALLET);
         vm.expectRevert("Only a manager can call this function");
-        orderVault.makeExternalCall(FAKE_MAKER_WALLET, 10 ether, "0x");
+        aoriVault.makeExternalCall(FAKE_MAKER_WALLET, 10 ether, "0x");
         vm.stopPrank();
     }
 
     function test_successMakeExternalCall() public {
         vm.startPrank(MAKER_WALLET);
-        orderVault.makeExternalCall(TAKER_WALLET, 30 ether, "0x");
+        aoriVault.makeExternalCall(TAKER_WALLET, 30 ether, "0x");
         vm.stopPrank();
     }
 
@@ -400,13 +399,13 @@ contract OrderVaultTest is DSTest {
     function test_failSetManagerNotOwner() public {
         vm.startPrank(FAKE_MAKER_WALLET);
         vm.expectRevert("Only owner can call this function");
-        orderVault.setManager(FAKE_MAKER_WALLET, true);
+        aoriVault.setManager(FAKE_MAKER_WALLET, true);
         vm.stopPrank();
     }
 
     function test_successSetManager() public {
         vm.startPrank(MAKER_WALLET);
-        orderVault.setManager(MAKER_WALLET, true);
+        aoriVault.setManager(MAKER_WALLET, true);
         vm.stopPrank();
     }
 
@@ -417,7 +416,7 @@ contract OrderVaultTest is DSTest {
     function test_successSendETH() public {
         vm.deal(MAKER_WALLET, 10 ether);
         vm.startPrank(MAKER_WALLET);
-        (bool success, ) = payable(address(orderVault)).call{value: 1 ether}("");
+        (bool success, ) = payable(address(aoriVault)).call{value: 1 ether}("");
         require(success);
         vm.stopPrank();
     }
@@ -425,7 +424,7 @@ contract OrderVaultTest is DSTest {
     function test_successERC20() public {
         vm.startPrank(MAKER_WALLET);
         tokenA.mint(10 ether);
-        tokenA.transfer(address(orderVault), 10 ether);
+        tokenA.transfer(address(aoriVault), 10 ether);
         vm.stopPrank();
     }
 

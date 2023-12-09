@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/AoriVault.sol";
+import "../contracts/AoriVault.sol";
 import {ICREATE3Factory} from "create3-factory/src/ICREATE3Factory.sol";
 
 contract DeployScript is Script {

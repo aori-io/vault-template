@@ -12,13 +12,15 @@ import { OrderType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { SimpleToken } from "./mocks/SimpleToken.sol";
 import { OrderHasher } from "./utils/OrderHasher.sol";
-import { AoriVault } from "../src/AoriVault.sol";
+import { AoriVault } from "../contracts/AoriVault.sol";
+import { Instruction } from "../contracts/FlashExecutor.sol";
 import { IAoriProtocol } from "aori-contracts/src/IAoriProtocol.sol";
 import { AoriProtocol } from "aori-contracts/src/AoriProtocol.sol";
 
 contract AoriVaultTest is DSTest {
     Vm internal vm = Vm(HEVM_ADDRESS);
     address constant SEAPORT_ADDRESS = 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC;
+    address constant BALANCER_ADDRESS = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     AoriProtocol internal aoriProtocol;
     AoriVault internal aoriVault;
 
@@ -65,11 +67,13 @@ contract AoriVaultTest is DSTest {
 
     OrderHasher internal orderHasher;
 
+    Instruction[] internal instructions;
+
     function setUp() public {
         aoriProtocol = new AoriProtocol(SERVER_WALLET, SEAPORT_ADDRESS);
 
         vm.prank(MAKER_WALLET);
-        aoriVault = new AoriVault(MAKER_WALLET, address(aoriProtocol));
+        aoriVault = new AoriVault(MAKER_WALLET, address(aoriProtocol), BALANCER_ADDRESS);
 
         vm.label(address(aoriProtocol), "Order Protocol");
         vm.label(address(aoriVault), "Order Vault");
@@ -83,6 +87,8 @@ contract AoriVaultTest is DSTest {
 
         vm.label(address(tokenA), "TokenA");
         vm.label(address(tokenB), "TokenB");
+
+        vm.deal(MAKER_WALLET, 100 ether);
 
         orderHasher = new OrderHasher();
     }
@@ -105,8 +111,16 @@ contract AoriVaultTest is DSTest {
         //////////////////////////////////////////////////////////////*/
 
         vm.startPrank(FAKE_SERVER_WALLET);
-        vm.expectRevert("Only a manager can call this function");
-        aoriVault.makeTrade(matching, serverSignature);
+        vm.expectRevert("Only owner can execute");
+
+        Instruction memory instruction = Instruction({
+            to: address(aoriVault),
+            value: 0,
+            data: "0x"
+        });
+        instructions.push(instruction);
+
+        aoriVault.execute(instructions);
         vm.stopPrank();
     }
 
@@ -211,11 +225,15 @@ contract AoriVaultTest is DSTest {
 
         // Have the manager approve transfer approval of tokenA by Seaport contract
         vm.startPrank(MAKER_WALLET);
-        aoriVault.makeExternalCall({
+        Instruction memory instruction = Instruction({
             to: address(tokenA),
             value: 0,
             data: abi.encodeWithSignature("approve(address,uint256)", SEAPORT_ADDRESS, 2 ** 256 - 1)
         });
+        instructions.push(instruction);
+
+        aoriVault.execute(instructions);
+        instructions.pop();
         vm.stopPrank();
 
         // Mint some tokens for the AoriVault
@@ -228,18 +246,28 @@ contract AoriVaultTest is DSTest {
         vm.stopPrank();
 
         vm.startPrank(MAKER_WALLET);
+
+        Instruction memory takerInstruction = Instruction({
+            to: address(aoriProtocol),
+            value: 0,
+            data: abi.encodeWithSelector(AoriProtocol.settleOrders.selector, AoriProtocol.MatchingDetails({
+                makerOrders: advancedOrders,
+                takerOrder: takerOrder,
+                fulfillments: fulfillments,
+                blockDeadline: block.number,
+                chainId: block.chainid
+            }), AoriProtocol.Signature({
+                v: serverV,
+                r: serverR,
+                s: serverS
+            }))
+        });
+
+        instructions.push(takerInstruction);
         vm.expectRevert();
-        aoriVault.makeTrade(AoriProtocol.MatchingDetails({
-            makerOrders: advancedOrders,
-            takerOrder: takerOrder,
-            fulfillments: fulfillments,
-            blockDeadline: block.number,
-            chainId: block.chainid
-        }), AoriProtocol.Signature({
-            v: serverV,
-            r: serverR,
-            s: serverS
-        }));
+        aoriVault.execute(instructions);
+        instructions.pop();
+
         vm.stopPrank();
     }
 
@@ -344,11 +372,15 @@ contract AoriVaultTest is DSTest {
 
         // Have the manager approve transfer approval of tokenA by Seaport contract
         vm.startPrank(MAKER_WALLET);
-        aoriVault.makeExternalCall({
+        Instruction memory instruction = Instruction({
             to: address(tokenA),
             value: 0,
             data: abi.encodeWithSignature("approve(address,uint256)", SEAPORT_ADDRESS, 2 ** 256 - 1)
         });
+        instructions.push(instruction);
+
+        aoriVault.execute(instructions);
+        instructions.pop();
         vm.stopPrank();
 
         // Mint some tokens for the AoriVault
@@ -361,17 +393,25 @@ contract AoriVaultTest is DSTest {
         vm.stopPrank();
 
         vm.startPrank(MAKER_WALLET);
-        aoriVault.makeTrade(AoriProtocol.MatchingDetails({
-            makerOrders: advancedOrders,
-            takerOrder: takerOrder,
-            fulfillments: fulfillments,
-            blockDeadline: block.number,
-            chainId: block.chainid
-        }), AoriProtocol.Signature({
-            v: serverV,
-            r: serverR,
-            s: serverS
-        }));
+        Instruction memory takerInstruction = Instruction({
+            to: address(aoriProtocol),
+            value: 0,
+            data: abi.encodeWithSelector(AoriProtocol.settleOrders.selector, AoriProtocol.MatchingDetails({
+                makerOrders: advancedOrders,
+                takerOrder: takerOrder,
+                fulfillments: fulfillments,
+                blockDeadline: block.number,
+                chainId: block.chainid
+            }), AoriProtocol.Signature({
+                v: serverV,
+                r: serverR,
+                s: serverS
+            }))
+        });
+
+        instructions.push(takerInstruction);
+        aoriVault.execute(instructions);
+        instructions.pop();
         vm.stopPrank();
     }
 
@@ -379,16 +419,29 @@ contract AoriVaultTest is DSTest {
                             MAKEEXTERNALCALL
     //////////////////////////////////////////////////////////////*/
 
-    function test_failMakeExternalCallNotManager() public {
+    function test_failMakeExternalCallNotOwner() public {
         vm.startPrank(FAKE_SERVER_WALLET);
-        vm.expectRevert("Only a manager can call this function");
-        aoriVault.makeExternalCall(FAKE_MAKER_WALLET, 10 ether, "0x");
+        vm.expectRevert("Only owner can execute");
+
+        Instruction memory instruction = Instruction({
+            to: FAKE_MAKER_WALLET,
+            value: 10 ether,
+            data: "0x"
+        });
+        instructions.push(instruction);
+        aoriVault.execute(instructions);
         vm.stopPrank();
     }
 
     function test_successMakeExternalCall() public {
         vm.startPrank(MAKER_WALLET);
-        aoriVault.makeExternalCall(TAKER_WALLET, 30 ether, "0x");
+        Instruction memory instruction = Instruction({
+            to: TAKER_WALLET,
+            value: 0 ether,
+            data: "0x"
+        });
+        instructions.push(instruction);
+        aoriVault.execute(instructions);
         vm.stopPrank();
     }
 

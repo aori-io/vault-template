@@ -3,9 +3,10 @@ pragma solidity 0.8.19;
 
 import { IAoriProtocol } from "aori-contracts/src/IAoriProtocol.sol";
 import { AoriProtocol } from "aori-contracts/src/AoriProtocol.sol";
+import { FlashExecutor } from "./FlashExecutor.sol";
 import { IERC1271 } from "openzeppelin-contracts/contracts/interfaces/IERC1271.sol";
 
-contract AoriVault is IERC1271 {
+contract AoriVault is IERC1271, FlashExecutor {
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal ERC1271_MAGICVALUE = 0x1626ba7e;
@@ -14,7 +15,6 @@ contract AoriVault is IERC1271 {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    address public owner;
     address public aoriProtocol;
 
     mapping (address => bool) public managers;
@@ -25,29 +25,11 @@ contract AoriVault is IERC1271 {
 
     constructor(
         address _owner,
-        address _aoriProtocol
-    ) {
-        owner = _owner;
-        managers[owner] = true;
+        address _aoriProtocol,
+        address _balancerAddress
+    ) FlashExecutor(_owner, _balancerAddress) {
+        managers[_owner] = true;
         aoriProtocol = _aoriProtocol;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                 CALLS
-    //////////////////////////////////////////////////////////////*/
-
-    function makeTrade(
-        AoriProtocol.MatchingDetails memory matching,
-        AoriProtocol.Signature memory serverSignature
-    ) external {
-        require(managers[msg.sender], "Only a manager can call this function");
-        IAoriProtocol(aoriProtocol).settleOrders(matching, serverSignature);
-    }
-
-    function makeExternalCall(address to, uint256 value, bytes memory data) external returns (bool, bytes memory) {
-        require(managers[msg.sender], "Only a manager can call this function");
-        (bool success, bytes memory returnedData) = (to).call{value: value}(data);
-        return (success, returnedData);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -97,11 +79,4 @@ contract AoriVault is IERC1271 {
         require(owner == msg.sender, "Only owner can call this function");
         managers[_manager] = _isManager;
     }
-
-    /*//////////////////////////////////////////////////////////////
-                                  MISC
-    //////////////////////////////////////////////////////////////*/
-
-    receive () external payable {}
-    fallback () external payable {}
 }

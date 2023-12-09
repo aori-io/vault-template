@@ -111,6 +111,139 @@ contract OrderVaultTest is DSTest {
         vm.stopPrank();
     }
 
+    function test_failMakeTradeForgedSignature() public {
+
+        /*//////////////////////////////////////////////////////////////
+                                ORDER CREATION
+        //////////////////////////////////////////////////////////////*/
+
+        offerItems.push(_createBaseOfferItemERC20(address(tokenA), 1 ether));
+        considerationItems.push(_createBaseConsiderationItemERC20(address(tokenB), 1 ether, address(orderVault)));
+
+        OrderParameters memory parameters = _createBaseOrderParameters(address(orderVault), address(orderProtocol));
+        OrderComponents memory makerOrderComponents = _getOrderComponents(parameters);
+        
+        bytes memory makerSignature = this._signOrder(
+            FAKE_MAKER_PRIVATE_KEY,
+            orderHasher._getOrderHash(makerOrderComponents)
+        );
+
+        AdvancedOrder memory order1 = AdvancedOrder({
+            parameters: parameters,
+            numerator: 10,
+            denominator: 10,
+            signature: makerSignature,
+            extraData: "0x"
+        });
+        advancedOrders.push(order1);
+
+        /*//////////////////////////////////////////////////////////////
+                                  TAKER ORDER
+        //////////////////////////////////////////////////////////////*/
+
+        offerItems.push(_createBaseOfferItemERC20(address(tokenB), 1 ether));
+        considerationItems.push(_createBaseConsiderationItemERC20(address(tokenA), 1 ether, TAKER_WALLET));
+
+        OrderParameters memory takerParameters = _createBaseOrderParameters(TAKER_WALLET, address(orderProtocol));
+        OrderComponents memory takerOrderComponents = _getOrderComponents(takerParameters);
+        
+        bytes memory takerSignature = this._signOrder(
+            TAKER_PRIVATE_KEY,
+            orderHasher._getOrderHash(takerOrderComponents)
+        );
+
+        AdvancedOrder memory takerOrder = AdvancedOrder({
+            parameters: takerParameters,
+            numerator: 10,
+            denominator: 10,
+            signature: takerSignature,
+            extraData: "0x"
+        });
+
+        /*//////////////////////////////////////////////////////////////
+                                FULFILLMENTS
+        //////////////////////////////////////////////////////////////*/
+
+        offerFulfillmentComponents.push(FulfillmentComponent(0, 0));
+        considerationFulfillmentComponents.push(FulfillmentComponent(1, 0));
+
+        Fulfillment memory fulfillment = Fulfillment(
+            offerFulfillmentComponents,
+            considerationFulfillmentComponents
+        );
+
+         Fulfillment memory fulfillment2 = Fulfillment(
+            new FulfillmentComponent[](1),
+            new FulfillmentComponent[](1)
+        );
+        fulfillment2.offerComponents[0] = FulfillmentComponent(1, 0);
+        fulfillment2.considerationComponents[0] = FulfillmentComponent(0, 0);
+
+        fulfillments.push(fulfillment);
+        fulfillments.push(fulfillment2);
+
+        /*//////////////////////////////////////////////////////////////
+                                SERVER SIGNATURE
+        //////////////////////////////////////////////////////////////*/
+
+        bytes32 matchingHash = keccak256(
+            abi.encode(
+                advancedOrders,
+                takerOrder,
+                fulfillments,
+                block.number,
+                block.chainid
+            )
+        );
+
+        (uint8 serverV, bytes32 serverR, bytes32 serverS) = vm.sign(
+            SERVER_PRIVATE_KEY,
+            keccak256(
+                abi.encodePacked(
+                    "\x19Ethereum Signed Message:\n32",
+                    matchingHash
+                )
+            )
+        );
+
+        /*//////////////////////////////////////////////////////////////
+                                    SETTLEMENT
+        //////////////////////////////////////////////////////////////*/
+
+        // Have the manager approve transfer approval of tokenA by Seaport contract
+        vm.startPrank(MAKER_WALLET);
+        orderVault.makeExternalCall({
+            to: address(tokenA),
+            value: 0,
+            data: abi.encodeWithSignature("approve(address,uint256)", SEAPORT_ADDRESS, 2 ** 256 - 1)
+        });
+        vm.stopPrank();
+
+        // Mint some tokens for the OrderVault
+        vm.prank(address(orderVault));
+        tokenA.mint(1 ether);
+
+        vm.startPrank(TAKER_WALLET);
+        IERC20(address(tokenB)).approve(SEAPORT_ADDRESS, 2 ** 256 - 1);
+        tokenB.mint(1 ether);
+        vm.stopPrank();
+
+        vm.startPrank(MAKER_WALLET);
+        vm.expectRevert();
+        orderVault.makeTrade(IOrderProtocol.MatchingDetails({
+            makerOrders: advancedOrders,
+            takerOrder: takerOrder,
+            fulfillments: fulfillments,
+            blockDeadline: block.number,
+            chainId: block.chainid
+        }), IOrderProtocol.Signature({
+            v: serverV,
+            r: serverR,
+            s: serverS
+        }));
+        vm.stopPrank();
+    }
+
     function test_successMakeTrade() public {
 
         /*//////////////////////////////////////////////////////////////

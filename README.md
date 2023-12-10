@@ -2,83 +2,25 @@
 
 ![.](assets/aori-vault-template.svg)
 
-This boilerplate is a simple multi-token vault template that can be used to interact with Aori.
+This boilerplate is a simple smart contract vault template that can be used to store and manage assets programmatically. Flash loans are also supported through the use of Balancer.
 
-```solidity
-contract OrderVault is IERC1271 {
+An executor wallet must be provided in order to execute `Instruction`s against the vault, but managers can be added to sign off on signature requests.
 
-    // bytes4(keccak256("isValidSignature(bytes32,bytes)")
-    bytes4 constant internal ERC1271_MAGICVALUE = 0x1626ba7e;
-    
-    /*//////////////////////////////////////////////////////////////
-                            STATE VARIABLES
-    //////////////////////////////////////////////////////////////*/
+## Deployments
 
-    address public owner;
-    address public orderProtocol;
+Below is a list of deployments used by the Aori team to help bootstrap liquidity through DEX aggregators.
 
-    mapping (address => bool) public managers;
+Deployed and executed by `0xD2e31e651C5EdD8743355A9B29AeFb993880d14C`:
 
-    /*//////////////////////////////////////////////////////////////
-                              CONSTRUCTOR
-    //////////////////////////////////////////////////////////////*/
+| Network | Address |
+|---------|---------|
+| `Goerli (5)` | [0x11530084405184b1BE7CAd29c9fa0626bcDBe6A3](https://goerli.etherscan.io/address/0x11530084405184b1BE7CAd29c9fa0626bcDBe6A3) |
 
-    constructor(
-        address _orderProtocol
-    ) {
-        owner = msg.sender;
-        managers[owner] = true;
-        orderProtocol = _orderProtocol;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                 CALLS
-    //////////////////////////////////////////////////////////////*/
-
-    function makeTrade(
-        IOrderProtocol.MatchingDetails memory matching,
-        IOrderProtocol.Signature memory serverSignature
-    ) external {
-        // ...
-    }
-
-    function makeExternalCall(address to, uint256 value, bytes memory data) external returns (bool, bytes memory) {
-        // ...
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                EIP-1271
-    //////////////////////////////////////////////////////////////*/
-
-    function isValidSignature(bytes32 _hash, bytes memory _signature) public view returns (bytes4) {
-        // ...
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                               MANAGEMENT
-    //////////////////////////////////////////////////////////////*/
-
-    function setManager(address _manager, bool _isManager) external {
-        // ...
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                  MISC
-    //////////////////////////////////////////////////////////////*/
-
-    receive () external payable {}
-    fallback () external payable {}
-}
-```
-
-Managers of the vault can make and take limit orders for the vault off-chain, settling them with the vault's assets on-chain through the use of `makeTrade`.
-
-External calls can also be made via `makeExternalCall` e.g `ERC20` approvals.
+## Usage
 
 To run the tests, run:
 ```
 forge test --via-ir --fork-url $YOUR_RPC_URL
-
 ```
 
 

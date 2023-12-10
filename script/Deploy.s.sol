@@ -16,7 +16,7 @@ contract DeployScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         ICREATE3Factory(create3FactoryAddress).deploy(
-            keccak256(bytes("if youre reading this trade on aori thx")),
+            keccak256(bytes("an aori vault template")),
             abi.encodePacked(
                 type(AoriVault).creationCode,
                 abi.encode(deployerAddress, aoriProtocolAddress, balancerAddress)

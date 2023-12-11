@@ -111,7 +111,7 @@ contract AoriVaultTest is DSTest {
         //////////////////////////////////////////////////////////////*/
 
         vm.startPrank(FAKE_SERVER_WALLET);
-        vm.expectRevert("Only owner can execute");
+        vm.expectRevert("Only a manager can execute");
 
         Instruction memory instruction = Instruction({
             to: address(aoriVault),
@@ -421,7 +421,7 @@ contract AoriVaultTest is DSTest {
 
     function test_failMakeExternalCallNotOwner() public {
         vm.startPrank(FAKE_SERVER_WALLET);
-        vm.expectRevert("Only owner can execute");
+        vm.expectRevert("Only a manager can execute");
 
         Instruction memory instruction = Instruction({
             to: FAKE_MAKER_WALLET,

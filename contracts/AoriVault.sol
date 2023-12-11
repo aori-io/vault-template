@@ -17,8 +17,6 @@ contract AoriVault is IERC1271, FlashExecutor {
 
     address public aoriProtocol;
 
-    mapping (address => bool) public managers;
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -28,7 +26,6 @@ contract AoriVault is IERC1271, FlashExecutor {
         address _aoriProtocol,
         address _balancerAddress
     ) FlashExecutor(_owner, _balancerAddress) {
-        managers[_owner] = true;
         aoriProtocol = _aoriProtocol;
     }
 
@@ -69,14 +66,5 @@ contract AoriVault is IERC1271, FlashExecutor {
         }
 
         return 0x0;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                               MANAGEMENT
-    //////////////////////////////////////////////////////////////*/
-
-    function setManager(address _manager, bool _isManager) external {
-        require(owner == msg.sender, "Only owner can call this function");
-        managers[_manager] = _isManager;
     }
 }

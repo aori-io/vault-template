@@ -20,6 +20,7 @@ contract FlashExecutor is BalancerLoanReceiver {
     //////////////////////////////////////////////////////////////*/
 
     address internal owner;
+    mapping (address => bool) public managers;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -36,6 +37,12 @@ contract FlashExecutor is BalancerLoanReceiver {
         address _balancerAddress
     ) BalancerLoanReceiver(_balancerAddress) {
         owner = _owner;
+
+        // Set owner as a manager
+        managers[_owner] = true;
+
+        // Set own contract as a manager
+        managers[address(this)] = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -45,7 +52,7 @@ contract FlashExecutor is BalancerLoanReceiver {
     function execute(
         Instruction[] calldata instructions
     ) public payable {
-        require(msg.sender == owner, "Only owner can execute");
+        require(managers[msg.sender], "Only a manager can execute");
 
         uint256 length = instructions.length;
         for (uint256 i; i < length; i++) {
@@ -64,7 +71,7 @@ contract FlashExecutor is BalancerLoanReceiver {
         FlashLoan calldata loan,
         Instruction[] calldata instructions
     ) public payable {
-        require(msg.sender == owner, "Only owner can execute");
+        require(managers[msg.sender], "Only a manager can execute");
 
         _flashLoanMultipleTokens(
             loan.tokens,
@@ -78,8 +85,17 @@ contract FlashExecutor is BalancerLoanReceiver {
     //////////////////////////////////////////////////////////////*/
 
     function withdrawAll(address token, address recipient) public {
-        require(msg.sender == owner || msg.sender == address(this), "Only owner or this contract can execute");
+        require(managers[msg.sender], "Only owner or this contract can execute");
         IERC20(token).transfer(recipient, IERC20(token).balanceOf(address(this)));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                               MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
+
+    function setManager(address _manager, bool _isManager) external {
+        require(owner == msg.sender, "Only owner can call this function");
+        managers[_manager] = _isManager;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -1,19 +1,9 @@
 pragma solidity 0.8.19;
 import {BalancerLoanReceiver} from "./adapters/BalancerLoanReceiver.sol";
+import {IFlashExecutor, Instruction, FlashLoan } from "./interfaces/IFlashExecutor.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
-struct FlashLoan {
-    address[] tokens;
-    uint256[] amounts;
-}
-
-struct Instruction {
-    address to;
-    uint256 value;
-    bytes data;
-}
-
-contract FlashExecutor is BalancerLoanReceiver {
+contract FlashExecutor is BalancerLoanReceiver, IFlashExecutor {
 
     /*//////////////////////////////////////////////////////////////
                                  STATE

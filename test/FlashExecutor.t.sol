@@ -6,7 +6,8 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "forge-std/console.sol";
 import {Vm} from "forge-std/Vm.sol";
 
-import {FlashExecutor, FlashLoan, Instruction} from "../contracts/FlashExecutor.sol";
+import {FlashExecutor} from "../contracts/FlashExecutor.sol";
+import {FlashLoan, Instruction} from "../contracts/interfaces/IFlashExecutor.sol";
 import {IWETH9} from "../contracts/interfaces/IWETH9.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {MaliciousFlashLoaner} from "./mocks/MaliciousFlashLoaner.sol";
@@ -121,24 +122,24 @@ contract FlashExecutorTest is DSTest {
     //////////////////////////////////////////////////////////////*/
 
     function _tracedExecute(
-        FlashExecutor executor,
-        FlashLoan memory loan,
-        Instruction[] memory instructions,
+        FlashExecutor _executor,
+        FlashLoan memory _loan,
+        Instruction[] memory _instructions,
         uint256 value
     ) public {
         console.log("msg.value:", value);
         console.log("Flash loan: ");
 
         console.log("Instructions: ");
-        for (uint256 i = 0; i < instructions.length; i++) {
+        for (uint256 i = 0; i < _instructions.length; i++) {
             console.log("[ Instruction #", i, "]");
-            console.log("to: ", instructions[i].to);
-            console.log("value: ", instructions[i].value);
+            console.log("to: ", _instructions[i].to);
+            console.log("value: ", _instructions[i].value);
             console.log("data: ");
-            console.logBytes(instructions[i].data);
+            console.logBytes(_instructions[i].data);
         }
 
         console.log("Executing...");
-        executor.flashExecute{value: value}(loan, instructions);
+        _executor.flashExecute{value: value}(_loan, _instructions);
     }
 }

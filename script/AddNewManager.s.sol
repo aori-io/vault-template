@@ -3,12 +3,9 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 import {ICREATE3Factory} from "create3-factory/src/ICREATE3Factory.sol";
+import {IAoriVault} from "../contracts/interfaces/IAoriVault.sol";
 
-interface IAoriVault {
-    function setManager(address _manager, bool _isManager) external;
-}
-
-contract ApproveScript is Script {
+contract AddNewManagerScript is Script {
     function run() external {
         uint256 ownerPrivateKey = uint256(vm.envBytes32("PRIVATE_KEY"));
         address ownerAddress = vm.addr(ownerPrivateKey);

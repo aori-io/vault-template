@@ -13,7 +13,7 @@ import { OrderType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 import { SimpleToken } from "./mocks/SimpleToken.sol";
 import { OrderHasher } from "./utils/OrderHasher.sol";
 import { AoriVault } from "../contracts/AoriVault.sol";
-import { Instruction } from "../contracts/FlashExecutor.sol";
+import { Instruction } from "../contracts/interfaces/IFlashExecutor.sol";
 import { IAoriProtocol } from "aori-contracts/src/IAoriProtocol.sol";
 import { AoriProtocol } from "aori-contracts/src/AoriProtocol.sol";
 
